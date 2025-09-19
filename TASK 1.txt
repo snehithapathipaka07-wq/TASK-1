@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hangman Game</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+            line-height: 1.6;
+        }
+        .game-container {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .hangman-display {
+            font-size: 16px;
+            background: #f8f8f8;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+            white-space: pre-line;
+            text-align: center;
+        }
+        .word-display {
+            font-size: 32px;
+            text-align: center;
+            margin: 30px 0;
+            letter-spacing: 8px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .input-section {
+            text-align: center;
+            margin: 30px 0;
+        }
+        input[type="text"] {
+            padding: 10px;
+            font-size: 18px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            width: 50px;
+            text-align: center;
+            text-transform: uppercase;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+        .guessed-letters, .game-info {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 16px;
+        }
+        .win {
+            color: #27ae60;
+            font-weight: bold;
+        }
+        .lose {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .new-game-btn {
+            background: #27ae60;
+            margin: 0 10px;
+        }
+        .new-game-btn:hover {
+            background: #229954;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>🎯 HANGMAN GAME 🎯</h1>
+        
+        <div class="hangman-display" id="hangmanDisplay"></div>
+        
+        <div class="word-display" id="wordDisplay"></div>
+        
+        <div class="input-section">
+            <input type="text" id="guessInput" maxlength="1" placeholder="?" autocomplete="off">
+            <button id="guessBtn" onclick="makeGuess()">Guess</button>
+            <button class="new-game-btn" onclick="newGame()">New Game</button>
+        </div>
+        
+        <div class="guessed-letters">
+            <strong>Guessed Letters:</strong> <span id="guessedLetters"></span>
+        </div>
+        
+        <div class="game-info" id="gameInfo"></div>
+    </div>
+
+    <script>
+        const words = [
+            'JAVASCRIPT', 'COMPUTER', 'PROGRAMMING', 'HANGMAN', 'CHALLENGE',
+            'MYSTERY', 'ADVENTURE', 'TREASURE', 'RAINBOW', 'MOUNTAIN',
+            'OCEAN', 'FOREST', 'PUZZLE', 'RIDDLE', 'SECRET',
+            'MAGIC', 'WIZARD', 'CASTLE', 'DRAGON', 'KNIGHT'
+        ];
+
+        const hangmanParts = [
+            `
+  +---+
+  |   |
+      |
+      |
+      |
+      |
+=========`,
+            `
+  +---+
+  |   |
+  O   |
+      |
+      |
+      |
+=========`,
+            `
+  +---+
+  |   |
+  O   |
+  |   |
+      |
+      |
+=========`,
+            `
+  +---+
+  |   |
+  O   |
+ /|   |
+      |
+      |
+=========`,
+            `
+  +---+
+  |   |
+  O   |
+ /|\\  |
+      |
+      |
+=========`,
+            `
+  +---+
+  |   |
+  O   |
+ /|\\  |
+ /    |
+      |
+=========`,
+            `
+  +---+
+  |   |
+  O   |
+ /|\\  |
+ / \\  |
+      |
+=========`
+        ];
+
+        let currentWord = '';
+        let guessedWord = [];
+        let guessedLetters = [];
+        let wrongGuesses = 0;
+        let gameOver = false;
+
+        function newGame() {
+            currentWord = words[Math.floor(Math.random() * words.length)];
+            guessedWord = Array(currentWord.length).fill('_');
+            guessedLetters = [];
+            wrongGuesses = 0;
+            gameOver = false;
+            
+            updateDisplay();
+            document.getElementById('guessInput').disabled = false;
+            document.getElementById('guessBtn').disabled = false;
+            document.getElementById('guessInput').focus();
+        }
+
+        function updateDisplay() {
+            document.getElementById('hangmanDisplay').textContent = hangmanParts[wrongGuesses];
+            document.getElementById('wordDisplay').textContent = guessedWord.join(' ');
+            document.getElementById('guessedLetters').textContent = guessedLetters.join(', ');
+            
+            const gameInfo = document.getElementById('gameInfo');
+            if (gameOver) {
+                if (wrongGuesses >= 6) {
+                    gameInfo.innerHTML = `<span class="lose">💀 Game Over! The word was: ${currentWord}</span>`;
+                } else if (!guessedWord.includes('_')) {
+                    gameInfo.innerHTML = `<span class="win">🎉 Congratulations! You won!</span>`;
+                }
+            } else {
+                gameInfo.textContent = `Wrong guesses: ${wrongGuesses}/6`;
+            }
+        }
+
+        function makeGuess() {
+            if (gameOver) return;
+            
+            const input = document.getElementById('guessInput');
+            const letter = input.value.toUpperCase();
+            
+            if (!letter || letter.length !== 1 || !/[A-Z]/.test(letter)) {
+                alert('Please enter a valid letter!');
+                return;
+            }
+            
+            if (guessedLetters.includes(letter)) {
+                alert('You already guessed that letter!');
+                return;
+            }
+            
+            guessedLetters.push(letter);
+            
+            if (currentWord.includes(letter)) {
+                // Correct guess - reveal all instances of the letter
+                for (let i = 0; i < currentWord.length; i++) {
+                    if (currentWord[i] === letter) {
+                        guessedWord[i] = letter;
+                    }
+                }
+            } else {
+                // Wrong guess
+                wrongGuesses++;
+            }
+            
+            // Check win condition
+            if (!guessedWord.includes('_')) {
+                gameOver = true;
+                document.getElementById('guessInput').disabled = true;
+                document.getElementById('guessBtn').disabled = true;
+            }
+            
+            // Check lose condition
+            if (wrongGuesses >= 6) {
+                gameOver = true;
+                document.getElementById('guessInput').disabled = true;
+                document.getElementById('guessBtn').disabled = true;
+            }
+            
+            input.value = '';
+            updateDisplay();
+            
+            if (!gameOver) {
+                input.focus();
+            }
+        }
+
+        // Handle Enter key press
+        document.getElementById('guessInput').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                makeGuess();
+            }
+        });
+
+        // Auto-uppercase input
+        document.getElementById('guessInput').addEventListener('input', function(event) {
+            event.target.value = event.target.value.toUpperCase();
+        });
+
+        // Start the first game
+        newGame();
+    </script>
+</body>
+</html>
